@@ -3,6 +3,7 @@ Macbook Pro Max M2
 
 # Techstack
 Anaconda 
+https://github.com/ml-explore/mlx-examples/tree/main
 
 # Create a new environment
 conda create -n gita_env python=3.11 -y
