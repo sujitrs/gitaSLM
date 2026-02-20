@@ -302,6 +302,12 @@ model.load_weights('./gita_adapters_v2/adapters.safetensors', strict=False)
 print('LayerNorm weight (after adapter, if corrupted will differ):', mx.mean(mx.abs(ln.weight)).item())
 "
 ```
+## Pending things
+1. Fusing the model
+2. Convert to GGUF
+3. Quantize to smaller size
+4. Run with llama.cpp directly
+5. Deploy with Ollama for API based access
 
 
 
