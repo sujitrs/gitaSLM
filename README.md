@@ -24,11 +24,41 @@ huggingface-cli download mlx-community/Mistral-7B-Instruct-v0.3-4bit
 python prepare_data.py
 
 ### 4. Fine-tune (LoRA, ~10–20 mins on M-Max)
-python -m mlx_lm.lora \
-    --model mlx-community/Mistral-7B-Instruct-v0.3-4bit \
-    --data ./data --train \
-    --adapter-path ./gita_adapters \
-    --batch-size 2 --iters 600 --num-layers 16
+```
+python -m mlx_lm.lora -c /Users/sj/DevManus/gitaSLM/lora_config.yaml
+```
+```
+# Contents of lora_config.yaml
+# mlx-lm LoRA fine-tuning config for Bhagavad Gita QA
+# Pass with: python -m mlx_lm.lora -c lora_config.yaml
+
+model: "mlx-community/Mistral-7B-Instruct-v0.3-4bit"
+data: "/Users/sj/DevManus/gitaSLM/data"
+
+# Training
+train: true
+fine_tune_type: "lora"
+num_layers: 16
+batch_size: 2
+iters: 600
+learning_rate: 1e-4
+mask_prompt: true          # ← KEY FIX: only train on answer tokens
+seed: 42
+
+# LoRA hyperparameters (must go here, not as CLI flags)
+lora_parameters:
+  rank: 8
+  scale: 10.0              # stable default = ~1.25 * rank
+  dropout: 0.05            # small dropout helps generalisation
+
+# Checkpointing & eval
+adapter_path: "./gita_adapters_v2"
+save_every: 100
+steps_per_eval: 100
+steps_per_report: 10
+val_batches: 25
+max_seq_length: 2048
+```
 
 ### 5. Run inference
 python inference.py
@@ -193,6 +223,24 @@ with open('/Users/sj/DevManus/gitaSLM/data/train.jsonl') as f:
     row = json.loads(f.readline())
 print(json.dumps(row, indent=2))
 "
+
+# 4. Verify the adapters loaded correctly and aren't empty, run:
+
+ls -lh ./gita_adapters/
+
+You should see adapters.safetensors with a non-zero file size (typically 50–200 MB for 16 LoRA layers on Mistral-7B). If it's 0 bytes or missing then there is a issue.
+
+# Use the latest checkpoint directly in case of 0 bytes or missing adapters.safetensors
+python -c "
+from mlx_lm import load, generate
+model, tok = load(
+    'mlx-community/Mistral-7B-Instruct-v0.3-4bit',
+    adapter_path='./gita_adapters/0000600_adapters.safetensors'  # adjust number
+)
+prompt = '<s>[INST] What is Atman? [/INST]'
+print(generate(model, tok, prompt=prompt, max_tokens=300))
+"
+
 ```
 
 #### Solution 2
