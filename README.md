@@ -1,4 +1,13 @@
 
+## Overview
+
+This guide walks you through fine-tuning a large language model using Apple's **MLX** framework and **LoRA** (Low-Rank Adaptation) on the Bhagavad Gita QA dataset from Hugging Face. Everything runs locally on your Mac — no cloud, no GPU rental.
+
+**Dataset used:** `sweatSmile/Bhagavad-Gita-Vyasa-Edwin-Arnold`  
+**Fields:** `question`, `answer` — 500 QA pairs covering all 18 chapters  
+**Base model:** `mlx-community/Mistral-7B-Instruct-v0.3-4bit` (quantized, ~4GB)
+
+
 # Bhagwadgita Small Language Model
 
 ## Introduction
