@@ -3,79 +3,110 @@
 
 This guide walks you through fine-tuning a large language model using Apple's **MLX** framework and **LoRA** (Low-Rank Adaptation) on the Bhagavad Gita QA dataset from Hugging Face. Everything runs locally on your Mac — no cloud, no GPU rental.
 
-**Dataset used:** `sweatSmile/Bhagavad-Gita-Vyasa-Edwin-Arnold`  
-**Fields:** `question`, `answer` — 500 QA pairs covering all 18 chapters  
-**Base model:** `mlx-community/Mistral-7B-Instruct-v0.3-4bit` (quantized, ~4GB)
-
-
-# Bhagwadgita Small Language Model
-
-## Introduction
-### Solution Components
 
 1. Macbook ProMax M2
-2. Python
+2. Python Python 3.10+
 3. mlx-lm Library
-4. Kaggle Dataset of Bhagwadgita
+4. Kaggle Dataset of Bhagwadgita : `sweatSmile/Bhagavad-Gita-Vyasa-Edwin-Arnold` : `question`, `answer` — 500 QA pairs covering all 18 chapters  
 5. Hugging Face
-6. Mistral-7B-Instruct-v0.3-4bit
+6. Base Model: Mistral-7B-Instruct-v0.3-4bit  (quantized, ~4GB)
+7. lora_config.yaml (Present in this repo)
+8. inference.py (Present in this repo)
+9. prepare_data.py (Present in this repo)
 
-## Methodology
+---
 
-### 1. Install
-pip install mlx-lm datasets huggingface_hub
+## Step 1: Environment Setup
+
+```bash
+# Create and activate a virtual environment
+python3 -m venv gita_mlx_env
+source gita_mlx_env/bin/activate
+
+# Install required packages
+pip install --upgrade pip
+pip install mlx-lm
+pip install datasets huggingface_hub pandas
+```
+
+Login to Hugging Face (needed to download models):
+
+```bash
 huggingface-cli login
+# Paste your token from: https://huggingface.co/settings/tokens
+```
 
-### 2. Download model
+---
+
+## Step 2: Download the Base Model
+
+```bash
+# Download a 4-bit quantized model optimized for Apple Silicon
 huggingface-cli download mlx-community/Mistral-7B-Instruct-v0.3-4bit
 
-### 3. Prepare data
-python prepare_data.py
-
-### 4. Fine-tune (LoRA, ~10–20 mins on M-Max)
+# Alternative lighter model (good for 16GB RAM Macs):
+# huggingface-cli download mlx-community/Phi-3.5-mini-instruct-4bit
 ```
+
+---
+
+## Step 3: Prepare the Dataset
+Run the preparation script:
+
+```bash
+python prepare_data.py
+```
+
+---
+
+## Step 4: Fine-Tune with LoRA (Recommended) ~10–20 mins on M-Max
+
+LoRA trains only a small number of adapter weights, making it fast and memory-efficient.
+
+```bash
 python -m mlx_lm.lora -c /Users/sj/DevManus/gitaSLM/lora_config.yaml
 ```
-```
-# Contents of lora_config.yaml
-# mlx-lm LoRA fine-tuning config for Bhagavad Gita QA
-# Pass with: python -m mlx_lm.lora -c lora_config.yaml
 
-model: "mlx-community/Mistral-7B-Instruct-v0.3-4bit"
-data: "/Users/sj/DevManus/gitaSLM/data"
+---
 
-# Training
-train: true
-fine_tune_type: "lora"
-num_layers: 16
-batch_size: 2
-iters: 600
-learning_rate: 1e-4
-mask_prompt: true          # ← KEY FIX: only train on answer tokens
-seed: 42
+## Step 5: Test Your Fine-Tuned Model
 
-# LoRA hyperparameters (must go here, not as CLI flags)
-lora_parameters:
-  rank: 8
-  scale: 10.0              # stable default = ~1.25 * rank
-  dropout: 0.05            # small dropout helps generalisation
+Test inference using your LoRA adapters (without fusing):
 
-# Checkpointing & eval
-adapter_path: "./gita_adapters_v2"
-save_every: 100
-steps_per_eval: 100
-steps_per_report: 10
-val_batches: 25
-max_seq_length: 2048
-```
-
-### 5. Run inference
+```bash
 python inference.py
+```
 
-## Installation
-## Training
-## Inference
-## Learnings
+Output
+
+```
+Your question: why does Arjun seem to be perpetually confused with Krishnas teachings
+
+Arjuna's confusion in the Bhagavad Gita arises from several factors:
+
+1. Overwhelming Situation: Arjuna is faced with a difficult situation, having to fight against his own kinsmen and teachers. This emotional turmoil clouds his judgment and understanding.
+
+2. Divine Wisdom: Krishna's teachings are profound and transcend human understanding. Arjuna, being a human, struggles to grasp the divine wisdom that Krishna imparts.
+
+3. Human Limitations: Arjuna is a warrior, not a philosopher or a sage. His questions and confusion reflect the human struggle to understand the divine and the eternal.
+
+4. Duality vs. Non-Duality: Krishna's teachings often emphasize the non-dual nature of reality, which is difficult for Arjuna, who is accustomed to perceiving the world in dualistic terms, to fully comprehend.
+
+5. Transformation: Throughout the Gita, Arjuna's understanding evolves, reflecting the progressive nature of spiritual growth. His initial confusion gives way to understanding as Krishna guides him towards enlightenment.
+
+In essence, Arjuna's confusion mirrors the human condition, highlighting the struggle to reconcile our human limitations with the divine wisdom that transcends them.
+
+Your question: who is khatu shyam
+
+Khatu Shyam is not a character or deity directly mentioned in the Bhagavad Gita. The Bhagavad Gita is a 700-verse Hindu scripture that is a part of the Indian epic Mahabharata, where the deity Krishna speaks to the warrior Arjuna about moral and spiritual duties.
+
+Khatu Shyam is a revered form of Krishna worshipped in the town of Khatu in the Indian state of Rajasthan. This form of Krishna is believed to have appeared in the form of a dark-skinned, bearded man, and is associated with miracles and healing powers. The legend surrounding Khatu Shyam is not found in the Bhagavad Gita, but rather in local folklore and traditions.
+
+Your question: exit
+
+🙏 Namaste! Goodbye.
+```
+
 ## Troubleshooting
 ### 1. Error while training
 
@@ -278,36 +309,3 @@ print('LayerNorm weight (after adapter, if corrupted will differ):', mx.mean(mx.
 
 
 
-
-# Machine Used
-Macbook Pro Max M2
-
-# Techstack
-Anaconda 
-https://github.com/ml-explore/mlx-examples/tree/main
-
-# Create a new environment
-conda create -n gita_env python=3.11 -y
-conda activate gita_env
-
-# Install the Mac-compatible bridge
-pip install unsloth-mlx mlx-lm mlx trl datasets
-
-
-# CHANGE THIS IMPORT
-from unsloth_mlx import FastLanguageModel 
-# from unsloth_mlx import SFTTrainer # Use this if standard TRL fails
-
-import torch
-from datasets import load_dataset
-from trl import SFTTrainer
-from transformers import TrainingArguments
-
-# Everything else stays almost identical!
-model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name = "mlx-community/Llama-3.2-1B-Instruct", # Use MLX-optimized weights
-    max_seq_length = 2048,
-    load_in_4bit = True,
-)
-
-# ... (rest of the dataset and training code from before)
